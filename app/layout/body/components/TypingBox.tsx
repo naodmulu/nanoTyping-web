@@ -5,8 +5,14 @@ const textList = sampleText.split(' ');
 
 const TypingBox = ({ text = textList }: { text?: string[] }) => {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [typedIndices, setTypedIndices] = useState<number[][]>(
-    Array(text.length).fill([]) // each word gets an empty array initially
+
+  // Each word gets its own dictionary mapping character index -> { correct: boolean }
+  type CharState = { correct: boolean };
+  type WordCharMap = Record<number, CharState>;
+
+  const [typedMap, setTypedMap] = useState<WordCharMap[]>(
+    // initialize one empty object per word
+    Array.from({ length: text.length }, () => ({} as WordCharMap))
   );
 
   const currentWord = text[currentWordIndex];
@@ -14,14 +20,21 @@ const TypingBox = ({ text = textList }: { text?: string[] }) => {
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
 
-    setTypedIndices((prev) => {
-      const newTyped = [...prev]; // shallow copy outer array
-      newTyped[currentWordIndex] = value.split('').map((_, i) => i); // update only current word
-      return newTyped;
+    // Build a per-character map for the current word only
+    const charMap: WordCharMap = {};
+    [...value].forEach((ch, i) => {
+      charMap[i] = { correct: currentWord?.[i] === ch };
+    });
+
+    // Update only the dictionary for the current word
+    setTypedMap((prev) => {
+      const next = prev.slice();
+      next[currentWordIndex] = charMap;
+      return next;
     });
 
     // Move to next word if finished
-    if (value === text[currentWordIndex]) {
+    if (value === currentWord) {
       setCurrentWordIndex((prev) => prev + 1);
       e.target.value = ''; // reset input for next word
     }
@@ -29,7 +42,7 @@ const TypingBox = ({ text = textList }: { text?: string[] }) => {
 
   const handleRest = () => {
     setCurrentWordIndex(0);
-    setTypedIndices([]);
+    setTypedMap(Array.from({ length: text.length }, () => ({} as WordCharMap)));
   };
 
   return (
@@ -38,11 +51,14 @@ const TypingBox = ({ text = textList }: { text?: string[] }) => {
         {text.map((word, wordIndex) => (
           <span key={wordIndex} className="mr-2">
             {[...word].map((char, charIndex) => {
-              const isTyped = typedIndices[wordIndex]?.includes(charIndex); // check word-specific array
+              const charState = typedMap[wordIndex]?.[charIndex];
+              const isTyped = !!charState;
+              const correct = charState?.correct ?? false;
+
+              const color = correct ? 'green' : isTyped ? 'red' : 'gray';
+
               return (
-                <span
-                  key={charIndex}
-                  style={{ color: isTyped ? 'green' : 'gray' }}>
+                <span key={charIndex} style={{ color }}>
                   {char}
                 </span>
               );
