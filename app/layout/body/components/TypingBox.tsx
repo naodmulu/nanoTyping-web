@@ -1,97 +1,142 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 const sampleText = `The quick brown fox jumps over the lazy dog.`;
 const textList = sampleText.split(' ');
 
+type CharState = {
+  correct: boolean;
+  typedChar: string;
+};
+
+type WordCharMap = Record<number, CharState>;
+
+const MAX_EXTRA_CHARS = 5;
+
 const TypingBox = ({ text = textList }: { text?: string[] }) => {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
-
-  // Each word gets its own dictionary mapping character index -> { correct: boolean }
-  type CharState = { correct: boolean };
-  type WordCharMap = Record<number, CharState>;
-
   const [typedMap, setTypedMap] = useState<WordCharMap[]>(
-    // initialize one empty object per word
     Array.from({ length: text.length }, () => ({} as WordCharMap))
   );
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const currentWord =
-    text[currentWordIndex] + (text.length === currentWordIndex + 1 ? '' : ' ');
+  const currentWord = text[currentWordIndex];
+
+  const moveToNextWord = () => {
+    setCurrentWordIndex((prev) => (prev < text.length - 1 ? prev + 1 : prev));
+    if (inputRef.current) inputRef.current.value = '';
+  };
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
-    const inputLength = inputValue.length;
+    let inputValue = e.target.value;
+
+    // SPACE → move to next word
+    if (inputValue.endsWith(' ')) {
+      moveToNextWord();
+      return;
+    }
+
+    // Enforce max typing length
+    const maxLength = currentWord.length + MAX_EXTRA_CHARS;
+    if (inputValue.length > maxLength) {
+      inputValue = inputValue.slice(0, maxLength);
+      e.target.value = inputValue;
+    }
+
     const charMap: WordCharMap = {};
 
-    // Build per-character status for the current word
-    [...currentWord].forEach((char, index) => {
-      if (index >= inputLength) return; // skip untyped chars
-      const typedChar = inputValue[index];
+    [...inputValue].forEach((typedChar, index) => {
+      const expectedChar = currentWord[index];
+
       charMap[index] = {
-        correct: typedChar === char,
+        correct: typedChar === expectedChar,
+        typedChar,
       };
     });
 
-    // Update only the dictionary for the current word
+    // Update ONLY the current word
     setTypedMap((prev) => {
-      const next = prev.slice();
+      const next = [...prev];
       next[currentWordIndex] = charMap;
       return next;
     });
-
-    // Move to next word if fully typed correctly
-    if (inputValue === currentWord) {
-      setCurrentWordIndex((prev) => prev + 1);
-      e.target.value = ''; // reset input for next word
-    }
   };
 
-  useEffect(() => {
-    console.log('typedMap', typedMap.slice(0, currentWordIndex + 1));
-  }, [typedMap]);
-
-  const handleRest = () => {
+  const handleReset = () => {
     setCurrentWordIndex(0);
     setTypedMap(Array.from({ length: text.length }, () => ({} as WordCharMap)));
     if (inputRef.current) inputRef.current.value = '';
   };
 
   return (
-    <div className=" text-black p-4 rounded mb-4 w-full max-w-2xl ">
-      <div className="whitespace-normal break-words">
-        {text.map((word, wordIndex) => (
-          <span key={wordIndex}>
-            {[...word].map((char, charIndex) => {
-              const charState = typedMap[wordIndex]?.[charIndex];
-              const isTyped = !!charState;
-              const correct = charState?.correct ?? false;
-              const color = correct ? 'green' : isTyped ? 'red' : 'gray';
+    <div className="text-black p-4 rounded w-full max-w-2xl">
+      {/* Display */}
+      <div className="whitespace-normal break-words text-lg leading-relaxed font-mono">
+        {text.map((word, wordIndex) => {
+          const charStates = typedMap[wordIndex] || {};
+          const isActive = wordIndex === currentWordIndex;
 
-              return (
-                <span key={`${wordIndex}_${charIndex}`} style={{ color }}>
-                  {char}
-                </span>
-              );
-            })}{' '}
-          </span>
-        ))}
+          const renderLength = isActive
+            ? word.length + MAX_EXTRA_CHARS
+            : word.length;
+
+          return (
+            <span key={wordIndex} className="mr-2 relative">
+              {Array.from({ length: renderLength }).map((_, charIndex) => {
+                const charState = charStates[charIndex];
+                const expectedChar = word[charIndex];
+
+                // 1️⃣ Expected characters (within word length)
+                if (charIndex < word.length) {
+                  if (!charState) {
+                    return (
+                      <span key={charIndex} className="text-gray-400">
+                        {expectedChar}
+                      </span>
+                    );
+                  }
+
+                  return (
+                    <span
+                      key={charIndex}
+                      className={
+                        charState.correct ? 'text-green-600' : 'text-red-600'
+                      }>
+                      {expectedChar}
+                    </span>
+                  );
+                }
+
+                // 2️⃣ Extra characters (beyond word length)
+                if (charState) {
+                  return (
+                    <span key={charIndex} className="text-red-600">
+                      {charState.typedChar}
+                    </span>
+                  );
+                }
+
+                return null;
+              })}
+            </span>
+          );
+        })}
       </div>
 
+      {/* Input */}
       <input
         ref={inputRef}
         type="text"
         onChange={handleInput}
-        className="mt-4 p-2 border rounded"
+        className="mt-4 p-2 border rounded w-full"
         autoFocus
       />
 
-      {/* Reset Buttons */}
+      {/* Reset */}
       <div className="mt-4">
         <button
-          onClick={handleRest}
-          className="bg-red-500 text-white px-4 py-2 rounded mr-2">
+          onClick={handleReset}
+          className="bg-red-500 text-white px-4 py-2 rounded">
           Reset
         </button>
       </div>
