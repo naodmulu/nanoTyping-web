@@ -30,11 +30,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-900 text-gray-300 flex flex-col min-h-screen`}
       >
-        <Navigation />
-        <main className="flex-1">
+        <Navigation id="site-header" />
+        <main className="flex-1" id="main-content">
           {children}
         </main>
-        <Footer />
+        <Footer id="site-footer" />
       </body>
     </html>
   );
