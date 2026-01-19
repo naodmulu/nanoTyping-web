@@ -1,5 +1,7 @@
 <!-- README -->
-## NANOTYPING
+# nanoTyping
+
+A modern, minimalist typing speed test inspired by Monkeytype. Test and improve your typing speed with character-by-character feedback and detailed statistics.
 
 ## Getting Started
 

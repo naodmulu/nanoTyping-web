@@ -2,19 +2,18 @@
 import React, { useState } from 'react';
 import TypingBox from './components/TypingBox';
 import Options from './components/Options';
-// import Footer from "./Footer";
+import { TestConfig } from '@/app/utils/types';
+import { DEFAULT_CONFIG } from '@/app/utils/testModes';
 
 const Body = () => {
+  const [config, setConfig] = useState<TestConfig>(DEFAULT_CONFIG);
+
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-300 flex flex-col items-center justify-center">
+    <div className="w-full flex flex-col items-center justify-center py-8 px-4">
       <div className="mb-8">
-        <Options />
+        <Options config={config} onConfigChange={setConfig} />
       </div>
-      <TypingBox />
-      {/* <Footer /> */}
-      <div className="mt-8 text-sm text-gray-500">
-        <p>esc or ctrl + shift + p - command line</p>
-      </div>
+      <TypingBox config={config} />
     </div>
   );
 };

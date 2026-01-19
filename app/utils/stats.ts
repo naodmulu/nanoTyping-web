@@ -1,8 +1,5 @@
 // stats.ts
-export type CharState = {
-    correct: boolean;
-    typedChar: string;
-};
+import { CharState } from './types';
 
 export type WordCharMap = Record<number, CharState>;
 
@@ -14,6 +11,26 @@ export type TypingSample = {
 
 /* ---------------- core counters ---------------- */
 
+// Character-by-character counting (new approach)
+export function countCorrectCharsFromArray(charStates: CharState[]): number {
+    return charStates.filter((c) => c.correct).length;
+}
+
+export function countRawCharsFromArray(charStates: CharState[]): number {
+    return charStates.length;
+}
+
+export function countErrors(charStates: CharState[]): number {
+    return charStates.filter((c) => !c.correct).length;
+}
+
+export function calculateAccuracy(charStates: CharState[]): number {
+    if (charStates.length === 0) return 100;
+    const correct = countCorrectCharsFromArray(charStates);
+    return Math.round((correct / charStates.length) * 100);
+}
+
+// Legacy word-by-word counting (for backward compatibility)
 export function countCorrectChars(
     typedMap: WordCharMap[],
     finalizedOnly = false,
