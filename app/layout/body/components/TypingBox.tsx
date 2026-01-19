@@ -1,18 +1,14 @@
 import { useRef, useState, memo } from 'react';
+import ResultModal from './ResultModal';
+import { countCorrectChars, countRawChars, TypingSample, WordCharMap } from '@/app/utils/stats';
+import { useSessionTimer } from '@/app/hooks/useSessionTimer';
+import { useTypingStats } from '@/app/hooks/useTypingStats';
 
 const sampleText = `The quick brown fox jumps over the lazy dog.`;
 const textList = sampleText.split(' ');
 
-type CharState = {
-  correct: boolean;
-  typedChar: string;
-};
-
-type WordCharMap = Record<number, CharState>;
-
 const MAX_EXTRA_CHARS = 5;
 
-// Memoized Word Component
 interface WordProps {
   word: string;
   charStates: WordCharMap;
@@ -22,161 +18,187 @@ interface WordProps {
 
 const Word: React.FC<WordProps> = memo(
   ({ word, charStates, isActive, maxExtraChars }) => {
-    // Always render enough characters to display typed errors
     const renderLength = Math.max(
       word.length + (isActive ? maxExtraChars : 0),
       Object.keys(charStates).length
     );
 
     return (
-      <span className="mr-2 relative">
-        {Array.from({ length: renderLength }).map((_, charIndex) => {
-          const charState = charStates[charIndex];
-          const expectedChar = word[charIndex];
+      <span className="mr-2 font-mono">
+        {Array.from({ length: renderLength }).map((_, i) => {
+          const state = charStates[i];
+          const expected = word[i];
 
-          // Expected characters
-          if (charIndex < word.length) {
-            if (!charState) {
+          if (i < word.length) {
+            if (!state)
               return (
-                <span key={charIndex} className="text-gray-400">
-                  {expectedChar}
+                <span key={i} className="text-gray-400">
+                  {expected}
                 </span>
               );
-            }
 
             return (
               <span
-                key={charIndex}
-                className={charState.correct ? 'text-green-600' : 'text-red-600'}
+                key={i}
+                className={state.correct ? 'text-green-600' : 'text-red-600'}
               >
-                {expectedChar}
+                {expected}
               </span>
             );
           }
 
-          // Extra characters beyond word length
-          if (charState) {
+          if (state)
             return (
-              <span key={charIndex} className="text-red-600">
-                {charState.typedChar}
+              <span key={i} className="text-red-600">
+                {state.typedChar}
               </span>
             );
-          }
 
           return null;
         })}
       </span>
     );
-  },
-  (prev, next) => {
-    if (prev.word !== next.word) return false;
-    if (prev.isActive !== next.isActive) return false;
-
-    const prevKeys = Object.keys(prev.charStates);
-    const nextKeys = Object.keys(next.charStates);
-    if (prevKeys.length !== nextKeys.length) return false;
-
-    return prevKeys.every((key) => {
-      const p = prev.charStates[Number(key)];
-      const n = next.charStates[Number(key)];
-      return p?.correct === n?.correct && p?.typedChar === n?.typedChar;
-    });
   }
 );
 
 const TypingBox = ({ text = textList }: { text?: string[] }) => {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [typedMap, setTypedMap] = useState<WordCharMap[]>(
-    Array.from({ length: text.length }, () => ({} as WordCharMap))
+    Array.from({ length: text.length }, () => ({}))
   );
+  const [showResult, setShowResult] = useState(false);
+  const [samples, setSamples] = useState<TypingSample[]>([]);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const session = useSessionTimer();
+  const stats = useTypingStats(
+    typedMap,
+    session.elapsedMs,
+    currentWordIndex,
+    samples
+  );
+
   const currentWord = text[currentWordIndex];
+  const isLastWord = currentWordIndex === text.length - 1;
+
+  const finishSession = () => {
+    session.finish();
+    setShowResult(true);
+  };
 
   const moveToNextWord = () => {
-    setCurrentWordIndex((prev) => (prev < text.length - 1 ? prev + 1 : prev));
+    if (isLastWord) {
+      finishSession();
+      return;
+    }
+
+    setCurrentWordIndex((i) => i + 1);
     if (inputRef.current) inputRef.current.value = '';
   };
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let inputValue = e.target.value;
+    if (session.state === 'paused') return;
 
-    // SPACE → move to next word
-    if (inputValue.endsWith(' ') && inputValue.trim() !== '') {
+    let value = e.target.value;
+
+    if (session.state === 'idle' && value.trim() !== '') {
+      session.start();
+    }
+
+    if (value.endsWith(' ') && value.trim() !== '') {
       moveToNextWord();
       return;
     }
 
-    // Enforce max typing length
-    const maxLength = currentWord.length + MAX_EXTRA_CHARS;
-    if (inputValue.length > maxLength) {
-      inputValue = inputValue.slice(0, maxLength);
-      e.target.value = inputValue;
+    const maxLen = currentWord.length + MAX_EXTRA_CHARS;
+    if (value.length > maxLen) {
+      value = value.slice(0, maxLen);
+      e.target.value = value;
     }
 
-    const charMap: WordCharMap = {};
-
-    [...inputValue].forEach((typedChar, index) => {
-      const expectedChar = currentWord[index];
-      charMap[index] = {
-        correct: typedChar === expectedChar,
-        typedChar,
+    const map: WordCharMap = {};
+    [...value].forEach((char, i) => {
+      map[i] = {
+        correct: char === currentWord[i],
+        typedChar: char,
       };
     });
 
-    // Update ONLY the current word
     setTypedMap((prev) => {
       const next = [...prev];
-      next[currentWordIndex] = charMap;
+      next[currentWordIndex] = map;
       return next;
     });
+
+    setSamples((prev) => [
+      ...prev,
+      {
+        timestamp: performance.now(),
+        correctChars: countCorrectChars(
+          typedMap,
+          false,
+          currentWordIndex
+        ),
+        rawChars: countRawChars(typedMap),
+      },
+    ]);
+
+
+    // Finish if last word typed fully without space
+    if (isLastWord && value === currentWord) {
+      finishSession();
+    }
   };
 
-  const handleReset = () => {
+  const handleRestart = () => {
+    session.reset();
     setCurrentWordIndex(0);
-    setTypedMap(Array.from({ length: text.length }, () => ({} as WordCharMap)));
+    setTypedMap(Array.from({ length: text.length }, () => ({})));
+    setShowResult(false);
     if (inputRef.current) inputRef.current.value = '';
   };
 
   return (
-    <div className="text-black p-4 rounded w-full max-w-2xl">
-      {/* Display */}
-      <div className="whitespace-normal break-words text-lg leading-relaxed font-mono">
-        {text.map((word, wordIndex) => {
-          const charStates = typedMap[wordIndex] || {};
-          const isActive = wordIndex === currentWordIndex;
+    <>
+      <div className="p-4 max-w-2xl">
+        <div className="mb-2 text-sm space-x-4">
+          <span>Live WPM: {stats.rollingWPM}</span>
+          <span>WPM: {stats.correctedWPM}</span>
+          <span>Raw: {stats.rawWPM}</span>
+        </div>
 
-          return (
+
+        <div className="text-lg leading-relaxed">
+          {text.map((word, i) => (
             <Word
-              key={wordIndex}
+              key={i}
               word={word}
-              charStates={charStates}
-              isActive={isActive}
+              charStates={typedMap[i]}
+              isActive={i === currentWordIndex}
               maxExtraChars={MAX_EXTRA_CHARS}
             />
-          );
-        })}
+          ))}
+        </div>
+
+        <input
+          ref={inputRef}
+          type="text"
+          onChange={handleInput}
+          className="mt-4 p-2 border w-full"
+          autoFocus
+        />
       </div>
 
-      {/* Input */}
-      <input
-        ref={inputRef}
-        type="text"
-        onChange={handleInput}
-        className="mt-4 p-2 border rounded w-full"
-        autoFocus
+      <ResultModal
+        isOpen={showResult}
+        wpm={stats.finalizedWPM}
+        timeMs={session.elapsedMs}
+        correctChars={stats.correctChars}
+        onRestart={handleRestart}
       />
 
-      {/* Reset */}
-      <div className="mt-4">
-        <button
-          onClick={handleReset}
-          className="bg-red-500 text-white px-4 py-2 rounded"
-        >
-          Reset
-        </button>
-      </div>
-    </div>
+    </>
   );
 };
 
