@@ -1,11 +1,9 @@
 'use client';
 import React from 'react';
 
-
-
-const Navigation = ({ id }: { id: string }) => {
+const Navigation = () => {
   return (
-    <header id={id} className="bg-gray-900 border-b border-gray-800">
+    <header id="site-header" className="bg-gray-900 border-b border-gray-800">
       <nav className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

@@ -1,9 +1,9 @@
 'use client';
 import React from 'react';
 
-const Footer = ({ id }: { id: string }) => {
+const Footer = () => {
   return (
-    <footer id={id} className="bg-gray-900 border-t border-gray-800 mt-auto">
+    <footer id="site-footer" className="bg-gray-900 border-t border-gray-800 mt-auto">
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
           <div className="flex items-center gap-6">
