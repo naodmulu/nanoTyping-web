@@ -20,10 +20,10 @@
   - [x] capture keystrokes reliably (keydown/keypress), support IME
   - [x] apply edits, handle backspace, selection, paste
   - [x] debounce/queue input to avoid UI jank
-- [ ] Implement WPM feature
-  - [ ] compute WPM (correct chars → words) and update periodically
-  - [ ] support session start/pause/reset
-  - [ ] edge cases: zero-time, corrections, negative values
+- [x] Implement WPM feature
+  - [x] compute WPM (correct chars → words) and update periodically
+  - [x] support session start/pause/reset
+  - [x] edge cases: zero-time, corrections, negative values
 
 ---
 

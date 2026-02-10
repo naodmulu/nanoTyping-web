@@ -244,22 +244,85 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: TestConfig }) => {
     };
   }, [handleKeyDown]);
 
-  const renderText = () => {
-    return text.split('').map((char, i) => {
-      const state = charStates[i] || null;
-      const isCurrent = i === currentIndex;
+  // const renderText = () => {
+  //   // TODO: change the structure to word based rather than letter
+  //   return text.split('').map((char, i) => {
+  //     const state = charStates[i] || null;
+  //     const isCurrent = i === currentIndex;
 
+  //     return (
+  //       <span
+  //         key={i}
+  //         ref={isCurrent ? currentCharRef : null}
+  //         className="inline-block"
+  //       >
+  //         <CharDisplay char={char} state={state} isCurrent={isCurrent} />
+  //       </span>
+  //     );
+  //   });
+  // };
+
+  const renderText = () => {
+    let globalCharIndex = 0;
+    const words = text.split(' ');
+
+    return words.map((word, wordIndex) => {
       return (
-        <span
-          key={i}
-          ref={isCurrent ? currentCharRef : null}
-          className="inline-block"
-        >
-          <CharDisplay char={char} state={state} isCurrent={isCurrent} />
+        <span key={wordIndex} className="inline-block">
+          {/* Letters */}
+          {word.split('').map((char, letterIndex) => {
+            const state = charStates[globalCharIndex] || null;
+            const isCurrent = globalCharIndex === currentIndex;
+            const id = `${wordIndex}-${letterIndex}`;
+
+            const el = (
+              <span
+                key={id}
+                id={id}
+                ref={isCurrent ? currentCharRef : null}
+                className="inline-block"
+              >
+                <CharDisplay
+                  char={char}
+                  state={state}
+                  isCurrent={isCurrent}
+                />
+              </span>
+            );
+
+            globalCharIndex++;
+            return el;
+          })}
+
+          {/* Space (except after last word) */}
+          {wordIndex < words.length - 1 && (() => {
+            const state = charStates[globalCharIndex] || null;
+            const isCurrent = globalCharIndex === currentIndex;
+            const id = `${wordIndex}-space`;
+
+            const spaceEl = (
+              <span
+                key={id}
+                id={id}
+                ref={isCurrent ? currentCharRef : null}
+                className="inline-block"
+              >
+                <CharDisplay
+                  char=" "
+                  state={state}
+                  isCurrent={isCurrent}
+                />
+              </span>
+            );
+
+            globalCharIndex++;
+            return spaceEl;
+          })()}
         </span>
       );
     });
   };
+
 
   return (
     <>
@@ -299,6 +362,8 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: TestConfig }) => {
               </span>
             );
           })()}
+
+          {/* {config.mode === 'timer'} */}
         </div>
 
         <div
