@@ -3,9 +3,8 @@ import { useEffect, useRef, useState, memo, useCallback } from 'react';
 import ResultModal from './ResultModal';
 import { useSessionTimer } from '@/app/hooks/useSessionTimer';
 import { useTypingStats } from '@/app/hooks/useTypingStats';
-import { CharState, TestConfig } from '@/app/utils/types';
-import { DEFAULT_CONFIG, WORD_COUNT_OPTIONS } from '@/app/utils/testModes';
-import { calculateWPM } from '@/app/utils/stats';
+import { CharState, GameConfig } from '@/app/utils/types';
+import { DEFAULT_CONFIG } from '@/app/utils/testModes';
 
 // Simple word list for testing (100 words)
 const WORD_LIST = [
@@ -55,7 +54,7 @@ CharDisplay.displayName = 'CharDisplay';
 
 
 
-const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: TestConfig }) => {
+const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
   const [text, setText] = useState<string>('');
   const [charStates, setCharStates] = useState<CharState[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -71,16 +70,25 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: TestConfig }) => {
 
   // Initialize text when config changes
   useEffect(() => {
-    const wordCount = config.wordCount || 25;
-    const newText = generateText(wordCount);
+    let newText = '';
+
+    if (config.mode === 'words') {
+      const wordCount = config.wordCount || 25;
+      newText = generateText(wordCount);
+    }
+
+    if (config.mode === 'time') {
+      // Generate a lot of words so user never runs out
+      newText = generateText(200);
+    }
+
     setText(newText);
     setCharStates([]);
     setCurrentIndex(0);
     setShowResult(false);
     setSamples([]);
     session.reset();
-  }, [config.wordCount]);
-
+  }, [config.mode, config.wordCount]);
 
   // Scroll to current character
   useEffect(() => {
@@ -122,6 +130,18 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: TestConfig }) => {
       }
     };
   }, [session.state, lastActivityTime, session]);
+
+  // Auto-finish for time mode
+  useEffect(() => {
+    if (
+      config.mode === 'time' &&
+      session.state === 'running' &&
+      session.elapsedMs >= (config.timeLimit ?? 30) * 1000
+    ) {
+      finishSession();
+    }
+  }, [session.elapsedMs, session.state, config.mode, config.timeLimit]);
+
 
   const finishSession = useCallback(() => {
     session.finish();
@@ -210,7 +230,7 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: TestConfig }) => {
       ]);
 
       // Check if test is complete
-      if (currentIndex + 1 >= text.length) {
+      if (config.mode === 'words' && currentIndex + 1 >= text.length) {
         finishSession();
       } else {
         // Check word count completion for words mode
@@ -244,23 +264,7 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: TestConfig }) => {
     };
   }, [handleKeyDown]);
 
-  // const renderText = () => {
-  //   // TODO: change the structure to word based rather than letter
-  //   return text.split('').map((char, i) => {
-  //     const state = charStates[i] || null;
-  //     const isCurrent = i === currentIndex;
 
-  //     return (
-  //       <span
-  //         key={i}
-  //         ref={isCurrent ? currentCharRef : null}
-  //         className="inline-block"
-  //       >
-  //         <CharDisplay char={char} state={state} isCurrent={isCurrent} />
-  //       </span>
-  //     );
-  //   });
-  // };
 
   const renderText = () => {
     let globalCharIndex = 0;
@@ -363,7 +367,19 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: TestConfig }) => {
             );
           })()}
 
-          {/* {config.mode === 'timer'} */}
+          {config.mode === 'time' && (
+            <span className="flex items-center gap-2">
+              <span className="text-gray-500">time</span>
+              <span className="text-xl text-white">
+                {Math.max(
+                  0,
+                  (config.timeLimit ?? 30) -
+                  Math.floor(session.elapsedMs / 1000)
+                )}s
+              </span>
+            </span>
+          )}
+
         </div>
 
         <div

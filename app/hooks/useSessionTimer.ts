@@ -13,8 +13,7 @@ export function useSessionTimer() {
     const tick = useCallback((time: number) => {
         if (startTimeRef.current == null) return;
 
-        setElapsedMs((prev) => prev + (time - startTimeRef.current!));
-        startTimeRef.current = time;
+        setElapsedMs(time - startTimeRef.current);
         rafRef.current = requestAnimationFrame(tick);
     }, []);
 
@@ -39,9 +38,9 @@ export function useSessionTimer() {
         if (state !== 'paused') return;
 
         setState('running');
-        startTimeRef.current = performance.now();
+        startTimeRef.current = performance.now() - elapsedMs;
         rafRef.current = requestAnimationFrame(tick);
-    }, [state, tick]);
+    }, [state, tick, elapsedMs]);
 
     const reset = useCallback(() => {
         if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -57,7 +56,7 @@ export function useSessionTimer() {
         if (rafRef.current) cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
         startTimeRef.current = null;
-        setState('paused');
+        setState('idle');
     }, []);
 
 

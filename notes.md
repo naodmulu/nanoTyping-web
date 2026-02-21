@@ -31,9 +31,9 @@
 
 - [ ] Length-based game
   - [ ] generate text of target length (chars or sentences)
-  - [ ] end when length reached, record stats
+  - [x] end when length reached, record stats
 - [ ] Time-based game
-  - [ ] countdown timer, auto-stop on zero
+  - [x] countdown timer, auto-stop on zero
   - [ ] intermediate snapshots for live stats
 - [ ] Word-based game
   - [ ] stop after N words typed correctly

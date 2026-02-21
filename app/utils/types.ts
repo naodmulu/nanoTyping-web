@@ -14,10 +14,10 @@ export type TypingSample = {
     rawChars: number;
 };
 
-export type TestMode = 'words' | 'time' | 'quote' | 'custom';
+export type GameMode = 'words' | 'time' | 'quote' | 'custom';
 
-export type TestConfig = {
-    mode: TestMode;
+export type GameConfig = {
+    mode: GameMode;
     wordCount?: number; // for words mode: 10, 25, 50, 100
     timeLimit?: number; // for time mode: seconds
     punctuation: boolean;
