@@ -25,3 +25,8 @@ body {
     text-wrap: balance;
   }
 }
+
+/* Remove scrollbars class*/
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

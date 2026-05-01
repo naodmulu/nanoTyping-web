@@ -384,7 +384,7 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
 
         <div
           ref={containerRef}
-          className="text-2xl leading-relaxed font-mono p-8 bg-gray-800/50 rounded-lg border border-gray-700/50 min-h-[200px] focus:outline-none select-none relative"
+          className="text-2xl leading-relaxed font-mono p-8 bg-gray-800/50 rounded-lg border border-gray-700/50 min-h-[200px] max-h-[300px] overflow-y-auto focus:outline-none select-none relative no-scrollbar"
           tabIndex={0}
           style={{ wordBreak: 'break-word' }}
         >
