@@ -1,56 +1,12 @@
 'use client';
-import { useEffect, useRef, useState, memo, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import ResultModal from './ResultModal';
 import { useSessionTimer } from '@/app/hooks/useSessionTimer';
 import { useTypingStats } from '@/app/hooks/useTypingStats';
 import { CharState, GameConfig } from '@/app/utils/types';
 import { DEFAULT_CONFIG } from '@/app/utils/testModes';
-
-// Simple word list for testing (100 words)
-const WORD_LIST = [
-  'the', 'quick', 'brown', 'fox', 'jumps', 'over', 'lazy', 'dog', 'cat', 'mouse',
-  'house', 'tree', 'car', 'book', 'computer', 'keyboard', 'screen', 'monitor', 'desk', 'chair',
-  'table', 'door', 'window', 'wall', 'floor', 'ceiling', 'room', 'kitchen', 'bathroom', 'bedroom',
-  'living', 'dining', 'office', 'garage', 'garden', 'yard', 'street', 'road', 'city', 'town',
-  'country', 'state', 'nation', 'world', 'earth', 'planet', 'sun', 'moon', 'star', 'sky',
-  'cloud', 'rain', 'snow', 'wind', 'storm', 'weather', 'season', 'spring', 'summer', 'winter',
-  'autumn', 'fall', 'year', 'month', 'week', 'day', 'hour', 'minute', 'second', 'time',
-  'clock', 'watch', 'calendar', 'date', 'today', 'tomorrow', 'yesterday', 'morning', 'afternoon', 'evening',
-  'night', 'dawn', 'dusk', 'noon', 'midnight', 'breakfast', 'lunch', 'dinner', 'snack', 'meal',
-  'food', 'water', 'coffee', 'tea', 'juice', 'milk', 'bread', 'butter', 'cheese', 'meat'
-];
-
-function generateText(wordCount: number): string {
-  const words: string[] = [];
-  for (let i = 0; i < wordCount; i++) {
-    words.push(WORD_LIST[i % WORD_LIST.length]);
-  }
-  return words.join(' ');
-}
-
-interface CharDisplayProps {
-  char: string;
-  state: CharState | null;
-  isCurrent: boolean;
-}
-
-const CharDisplay: React.FC<CharDisplayProps> = memo(({ char, state, isCurrent }) => {
-  let className = 'text-gray-500';
-
-  if (state) {
-    className = state.correct ? 'text-gray-300' : 'text-red-500 bg-red-500/20';
-  } else if (isCurrent) {
-    className = 'text-gray-500 underline decoration-yellow-400 decoration-2';
-  }
-
-  return (
-    <span className={className}>
-      {char === ' ' ? '\u00A0' : char}
-    </span>
-  );
-});
-
-CharDisplay.displayName = 'CharDisplay';
+import { generateText } from '@/app/utils/textGenerator';
+import { RenderText } from '@/app/ui/RenderText';
 
 
 
@@ -63,32 +19,20 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
   const [lastActivityTime, setLastActivityTime] = useState<number>(performance.now());
   const containerRef = useRef<HTMLDivElement>(null);
   const currentCharRef = useRef<HTMLSpanElement>(null);
-  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const inactivityTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const session = useSessionTimer();
-  const stats = useTypingStats(charStates, session.elapsedMs, samples);
+  const { state, elapsedMs, start, pause, resume, reset, finish } = useSessionTimer();
+  const stats = useTypingStats(charStates, elapsedMs, samples);
 
   // Initialize text when config changes
   useEffect(() => {
-    let newText = '';
-
-    if (config.mode === 'words') {
-      const wordCount = config.wordCount || 25;
-      newText = generateText(wordCount);
-    }
-
-    if (config.mode === 'time') {
-      // Generate a lot of words so user never runs out
-      newText = generateText(200);
-    }
-
-    setText(newText);
+    setText(generateText(config));
     setCharStates([]);
     setCurrentIndex(0);
     setShowResult(false);
     setSamples([]);
-    session.reset();
-  }, [config.mode, config.wordCount]);
+    reset();
+  }, [config.mode, config.wordCount, config.timeLimit, reset]);
 
   // Scroll to current character
   useEffect(() => {
@@ -104,7 +48,7 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
   // Auto-pause on inactivity (15 seconds)
   useEffect(() => {
     // Only set up timer when session is running
-    if (session.state !== 'running') {
+    if (state !== 'running') {
       if (inactivityTimerRef.current) {
         clearInterval(inactivityTimerRef.current);
         inactivityTimerRef.current = null;
@@ -118,8 +62,8 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
       const timeSinceLastActivity = now - lastActivityTime;
 
       // Auto-pause after 15 seconds of inactivity
-      if (timeSinceLastActivity >= 15000 && session.state === 'running') {
-        session.pause();
+      if (timeSinceLastActivity >= 15000 && state === 'running') {
+        pause();
       }
     }, 1000);
 
@@ -129,37 +73,30 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
         inactivityTimerRef.current = null;
       }
     };
-  }, [session.state, lastActivityTime, session]);
+  }, [state, lastActivityTime, pause]);
 
   // Auto-finish for time mode
   useEffect(() => {
     if (
       config.mode === 'time' &&
-      session.state === 'running' &&
-      session.elapsedMs >= (config.timeLimit ?? 30) * 1000
+      state === 'running' &&
+      elapsedMs >= (config.timeLimit ?? 30) * 1000
     ) {
-      finishSession();
+      finish();
+      setShowResult(true);
     }
-  }, [session.elapsedMs, session.state, config.mode, config.timeLimit]);
-
-
-  const finishSession = useCallback(() => {
-    session.finish();
-    setShowResult(true);
-  }, [session]);
+  }, [elapsedMs, state, config.mode, config.timeLimit, finish]);
 
   const handleRestart = useCallback(() => {
-    session.reset();
-    const wordCount = config.wordCount || 25;
-    const newText = generateText(wordCount);
-    setText(newText);
+    reset();
+    setText(generateText(config));
     setCharStates([]);
     setCurrentIndex(0);
     setShowResult(false);
     setSamples([]);
     // Reset activity time on restart
     setLastActivityTime(performance.now());
-  }, [session, config.wordCount]);
+  }, [reset, config]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Prevent default for typing keys
@@ -172,10 +109,10 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
 
     // Handle special keys
     if (e.key === 'Escape') {
-      if (session.state === 'running') {
-        session.pause();
-      } else if (session.state === 'paused') {
-        session.resume();
+      if (state === 'running') {
+        pause();
+      } else if (state === 'paused') {
+        resume();
         // Reset activity time when resuming
         setLastActivityTime(performance.now());
       }
@@ -188,11 +125,11 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
       return;
     }
 
-    if (session.state === 'paused') return;
+    if (state === 'paused') return;
 
     // Start session on first keystroke
-    if (session.state === 'idle' && e.key.length === 1) {
-      session.start();
+    if (state === 'idle' && e.key.length === 1) {
+      start();
     }
 
     if (e.key === 'Backspace') {
@@ -231,7 +168,8 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
 
       // Check if test is complete
       if (config.mode === 'words' && currentIndex + 1 >= text.length) {
-        finishSession();
+        finish();
+        setShowResult(true);
       } else {
         // Check word count completion for words mode
         // Count completed words (words that have been fully typed including space after, or last word if fully typed)
@@ -249,12 +187,13 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
           }
 
           if (completedWords >= config.wordCount) {
-            finishSession();
+            finish();
+            setShowResult(true);
           }
         }
       }
     }
-  }, [text, currentIndex, session, config, charStates, finishSession, handleRestart]);
+  }, [text, currentIndex, state, start, pause, resume, config, charStates, finish, handleRestart]);
 
   // Set up keyboard listeners
   useEffect(() => {
@@ -264,68 +203,6 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
     };
   }, [handleKeyDown]);
 
-
-
-  const renderText = () => {
-    let globalCharIndex = 0;
-    const words = text.split(' ');
-
-    return words.map((word, wordIndex) => {
-      return (
-        <span key={wordIndex} className="inline-block">
-          {/* Letters */}
-          {word.split('').map((char, letterIndex) => {
-            const state = charStates[globalCharIndex] || null;
-            const isCurrent = globalCharIndex === currentIndex;
-            const id = `${wordIndex}-${letterIndex}`;
-
-            const el = (
-              <span
-                key={id}
-                id={id}
-                ref={isCurrent ? currentCharRef : null}
-                className="inline-block"
-              >
-                <CharDisplay
-                  char={char}
-                  state={state}
-                  isCurrent={isCurrent}
-                />
-              </span>
-            );
-
-            globalCharIndex++;
-            return el;
-          })}
-
-          {/* Space (except after last word) */}
-          {wordIndex < words.length - 1 && (() => {
-            const state = charStates[globalCharIndex] || null;
-            const isCurrent = globalCharIndex === currentIndex;
-            const id = `${wordIndex}-space`;
-
-            const spaceEl = (
-              <span
-                key={id}
-                id={id}
-                ref={isCurrent ? currentCharRef : null}
-                className="inline-block"
-              >
-                <CharDisplay
-                  char=" "
-                  state={state}
-                  isCurrent={isCurrent}
-                />
-              </span>
-            );
-
-            globalCharIndex++;
-            return spaceEl;
-          })()}
-        </span>
-      );
-    });
-  };
 
 
   return (
@@ -374,7 +251,7 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
                 {Math.max(
                   0,
                   (config.timeLimit ?? 30) -
-                  Math.floor(session.elapsedMs / 1000)
+                  Math.floor(elapsedMs / 1000)
                 )}s
               </span>
             </span>
@@ -388,8 +265,13 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
           tabIndex={0}
           style={{ wordBreak: 'break-word' }}
         >
-          {renderText()}
-          {session.state === 'paused' && (
+          <RenderText
+            text={text}
+            charStates={charStates}
+            currentIndex={currentIndex}
+            currentCharRef={currentCharRef}
+          />
+          {state === 'paused' && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/70 rounded-lg z-10">
               <div className="text-center">
                 <div className="text-4xl font-bold text-yellow-400 mb-2">PAUSED</div>
@@ -408,7 +290,7 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
         isOpen={showResult}
         wpm={stats.finalizedWPM}
         rawWpm={stats.rawWPM}
-        timeMs={session.elapsedMs}
+        timeMs={elapsedMs}
         correctChars={stats.correctChars}
         rawChars={stats.rawChars}
         errors={stats.errors}
