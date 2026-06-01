@@ -3,7 +3,9 @@ import { CharState } from '@/app/utils/types';
 import type { ReactNode, RefObject } from 'react';
 
 interface RenderTextArgs {
-    text: string;
+    fullText: string;
+    visibleStart: number;
+    visibleEnd: number;
     charStates: CharState[]
     currentIndex: number;
     currentCharRef: RefObject<HTMLSpanElement>;
@@ -11,68 +13,34 @@ interface RenderTextArgs {
 
 
 export const RenderText = ({
-    text,
+    fullText,
+    visibleStart,
+    visibleEnd,
     charStates,
     currentIndex,
     currentCharRef,
 }: RenderTextArgs): ReactNode => {
-    let globalCharIndex = 0;
-    const words = text.split(' ');
+    const visibleText = fullText.slice(visibleStart, visibleEnd);
 
-    return words.map((word, wordIndex) => (
-        <span key={wordIndex} className="inline-block" >
-            {/* Letters */}
-            {
-                word.split('').map((char, letterIndex) => {
-                    const state = charStates[globalCharIndex] ?? null;
-                    const isCurrent = globalCharIndex === currentIndex;
-                    const id = `${wordIndex}-${letterIndex}`;
+    return visibleText.split('').map((char, localIndex) => {
+        const globalIndex = visibleStart + localIndex;
+        const state = charStates[globalIndex] ?? null;
+        const isCurrent = globalIndex === currentIndex;
+        const id = `${globalIndex}`;
 
-                    const el = (
-                        <span
-                            key={id}
-                            id={id}
-                            ref={isCurrent ? currentCharRef : null}
-                            className="inline-block"
-                        >
-                            <CharDisplay
-                                char={char}
-                                state={state}
-                                isCurrent={isCurrent}
-                            />
-                        </span>
-                    );
-
-                    globalCharIndex++;
-                    return el;
-                })}
-
-            {/* Space */}
-            {
-                wordIndex < words.length - 1 && (() => {
-                    const state = charStates[globalCharIndex] ?? null;
-                    const isCurrent = globalCharIndex === currentIndex;
-                    const id = `${wordIndex}-space`;
-
-                    const spaceEl = (
-                        <span
-                            key={id}
-                            id={id}
-                            ref={isCurrent ? currentCharRef : null}
-                            className="inline-block"
-                        >
-                            <CharDisplay
-                                char={'\u00A0'}
-                                state={state}
-                                isCurrent={isCurrent}
-                            />
-                        </span>
-                    );
-
-                    globalCharIndex++;
-                    return spaceEl;
-                })()
-            }
-        </span>
-    ));
+        return (
+            <span
+                key={id}
+                id={id}
+                ref={isCurrent ? currentCharRef : null}
+                className="inline-block"
+            >
+                <CharDisplay
+                    char={char}
+                    state={state}
+                    isCurrent={isCurrent}
+                />
+            </span>
+        );
+    });
 };
