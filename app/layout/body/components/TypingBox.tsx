@@ -321,6 +321,22 @@ const TypingBox = ({
     }
   }, [currentIndex]);
 
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      const clickedInsideTypingBox = containerRef.current?.contains(target) ?? false;
+
+      if (!clickedInsideTypingBox && state === 'running') {
+        pause();
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+    };
+  }, [pause, state]);
+
   // Auto-pause on inactivity (15 seconds)
   useEffect(() => {
     if (state !== 'running') {
@@ -390,6 +406,15 @@ const TypingBox = ({
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isEditableTarget =
+        target instanceof HTMLElement &&
+        (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable);
+
+      if (isEditableTarget) {
+        return;
+      }
+
       if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Enter') {
         e.preventDefault();
       }
@@ -538,6 +563,12 @@ const TypingBox = ({
 
         <div
           ref={containerRef}
+          onMouseDown={() => {
+            if (state === 'paused') {
+              resume();
+              setLastActivityTime(performance.now());
+            }
+          }}
           className="text-2xl leading-relaxed font-mono p-8 bg-gray-800/50 rounded-lg border border-gray-700/50 min-h-[200px] max-h-[300px] overflow-y-auto focus:outline-none select-none relative no-scrollbar"
           tabIndex={0}
           style={{ wordBreak: 'break-word' }}
