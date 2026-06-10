@@ -8,6 +8,7 @@ import { CharState, GameConfig } from '@/app/utils/types';
 import { DEFAULT_CONFIG } from '@/app/utils/testModes';
 import { generateText, generateWordPassage } from '@/app/utils/textGenerator';
 import { RenderText } from '@/app/ui/RenderText';
+import { appendScore } from '@/app/utils/playerStats';
 
 const WINDOW_WORD_COUNT = 20;
 const TIME_MODE_EXPANSION_WORDS = 300;
@@ -175,7 +176,15 @@ function countCompletedWords(text: string, index: number): number {
   return words.length;
 }
 
-const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
+const TypingBox = ({
+  config = DEFAULT_CONFIG,
+  playerName = '',
+  onScoreSaved,
+}: {
+  config?: GameConfig;
+  playerName?: string;
+  onScoreSaved?: () => void;
+}) => {
   const [fullText, setFullText] = useState('');
   const [charStates, setCharStates] = useState<CharState[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -192,6 +201,7 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
   const measurementTextRef = useRef<HTMLSpanElement>(null);
   const currentCharRef = useRef<HTMLSpanElement>(null);
   const inactivityTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasSavedResultRef = useRef(false);
 
   const { state, elapsedMs, start, pause, resume, reset, finish } = useSessionTimer();
   const stats = useTypingStats(charStates, elapsedMs, samples);
@@ -218,6 +228,7 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
     setCurrentIndex(0);
     setShowResult(false);
     setSamples([]);
+    hasSavedResultRef.current = false;
     setLastActivityTime(performance.now());
     reset();
   }, [config, reset]);
@@ -348,6 +359,30 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
       setShowResult(true);
     }
   }, [elapsedMs, state, config.mode, config.timeLimit, finish]);
+
+  useEffect(() => {
+    if (!showResult || !playerName.trim() || hasSavedResultRef.current) {
+      return;
+    }
+
+    appendScore({
+      id: '',
+      playerName,
+      mode: config.mode,
+      wpm: stats.finalizedWPM,
+      rawWpm: stats.rawWPM,
+      accuracy: stats.accuracy,
+      correctChars: stats.correctChars,
+      rawChars: stats.rawChars,
+      errors: stats.errors,
+      durationMs: elapsedMs,
+      wordCount: config.mode === 'words' ? config.wordCount : undefined,
+      timestamp: Date.now(),
+    });
+
+    hasSavedResultRef.current = true;
+    onScoreSaved?.();
+  }, [config.mode, config.wordCount, elapsedMs, onScoreSaved, playerName, showResult, stats]);
 
   const handleRestart = useCallback(() => {
     initializeText();
