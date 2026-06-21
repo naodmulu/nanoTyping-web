@@ -1,6 +1,8 @@
 <!-- README -->
 # nanoTyping
 
+[![CI](https://github.com/naodmulu/nanoTyping-web/actions/workflows/ci.yml/badge.svg)](https://github.com/naodmulu/nanoTyping-web/actions/workflows/ci.yml)
+
 A modern, minimalist typing speed test inspired by Monkeytype. Test and improve your typing speed with character-by-character feedback and detailed statistics.
 
 ## Getting Started
@@ -20,6 +22,26 @@ bun dev
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+## Testing & quality checks
+
+```bash
+npm test         # run the Vitest unit + integration suite
+npm run test:watch  # watch mode
+npm run coverage    # run with coverage
+npm run typecheck   # tsc --noEmit
+npm run lint        # eslint
+```
+
+## Continuous Integration
+
+Every pull request (and every push to `main`) runs the
+[`CI` workflow](.github/workflows/ci.yml), which executes `npm ci`, then
+`lint`, `typecheck`, and `test`.
+
+**Recommended branch protection:** in **Settings → Branches**, add a rule for
+`main` that requires the **"Lint, typecheck & test"** status check to pass
+before merging. This blocks merges when CI is red.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 

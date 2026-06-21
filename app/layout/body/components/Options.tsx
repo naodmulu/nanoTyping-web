@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React from 'react';
 import { GameMode, GameConfig } from '@/app/utils/types';
 import { TIME_OPTIONS, WORD_COUNT_OPTIONS } from '@/app/utils/testModes';
 import ButtonWithMenu from './ButtonWithMenu';
