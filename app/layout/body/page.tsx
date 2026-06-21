@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import TypingBox from './components/TypingBox';
 import Options from './components/Options';
 import { GameConfig } from '@/app/utils/types';

@@ -27,19 +27,12 @@ const WINDOW_WORD_COUNT = 20;
 const TIME_MODE_EXPANSION_WORDS = 300;
 const TIME_MODE_EXPANSION_TRIGGER = 100;
 const DEFAULT_VISIBLE_LINE_COUNT = 6;
-// Rolling-WPM only needs a short recent window; cap the samples buffer so the
-// per-keystroke append stays O(1) w.r.t. session length instead of growing
-// unbounded.
-const MAX_SAMPLES = 200;
 
 const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
   const [fullText, setFullText] = useState('');
   const [charStates, setCharStates] = useState<CharState[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showResult, setShowResult] = useState(false);
-  const [samples, setSamples] = useState<
-    Array<{ timestamp: number; correctChars: number; rawChars: number }>
-  >([]);
   // Running character tallies, updated incrementally (O(1) per key) instead of
   // re-scanning charStates. charStates is retained purely for rendering.
   const [counts, setCounts] = useState<TypingCounts>(EMPTY_COUNTS);
@@ -54,7 +47,7 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
   const inactivityTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { state, elapsedMs, start, pause, resume, reset, finish } = useSessionTimer();
-  const stats = useTypingStats(counts, elapsedMs, samples);
+  const stats = useTypingStats(counts, elapsedMs);
   const wordBoundaries = useMemo(() => buildWordBoundaries(fullText), [fullText]);
   const { visibleStart, visibleEnd } = useMemo(
     () => {
@@ -77,7 +70,6 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
     setCharStates([]);
     setCurrentIndex(0);
     setShowResult(false);
-    setSamples([]);
     setCounts(EMPTY_COUNTS);
     setLastActivityTime(performance.now());
     reset();
@@ -273,20 +265,6 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
         setCurrentIndex(nextIndex);
         setCounts(nextCounts);
 
-        setSamples((prev) => {
-          const next = [
-            ...prev,
-            {
-              timestamp: performance.now(),
-              correctChars: nextCounts.correctChars,
-              rawChars: nextCounts.rawChars,
-            },
-          ];
-          // Keep only the most recent samples so this append never scales with
-          // session length.
-          return next.length > MAX_SAMPLES ? next.slice(next.length - MAX_SAMPLES) : next;
-        });
-
         if (config.mode === 'time') {
           if (nextIndex > fullText.length - TIME_MODE_EXPANSION_TRIGGER) {
             setFullText((prev) => prev + ' ' + generateWordPassage(TIME_MODE_EXPANSION_WORDS));
@@ -307,7 +285,6 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
       charStates,
       counts,
       config.mode,
-      config.timeLimit,
       config.wordCount,
       currentIndex,
       finish,
