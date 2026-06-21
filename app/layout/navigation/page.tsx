@@ -3,8 +3,11 @@ import React from 'react';
 
 const Navigation = () => {
   return (
-    <header id="site-header" className="bg-gray-900 border-b border-gray-800">
-      <nav className="max-w-7xl mx-auto px-4 py-4">
+    <header id="site-header" className="bg-gray-900 border-b border-gray-800 relative">
+      <a href="#main-content" className="skip-link">
+        Skip to typing test
+      </a>
+      <nav className="max-w-7xl mx-auto px-4 py-4" aria-label="Main">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-yellow-400 font-mono">
@@ -14,18 +17,12 @@ const Navigation = () => {
           </div>
           <div className="flex items-center gap-6 text-sm text-gray-400">
             <a
-              href="#"
+              href="https://github.com/naodmulu/nanoTyping-web/blob/main/DESIGN.md"
               className="hover:text-yellow-400 transition-colors"
-              onClick={(e) => e.preventDefault()}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               about
-            </a>
-            <a
-              href="#"
-              className="hover:text-yellow-400 transition-colors"
-              onClick={(e) => e.preventDefault()}
-            >
-              settings
             </a>
           </div>
         </div>

@@ -31,9 +31,14 @@ const ResultModal: React.FC<ResultModalProps> = ({
     const timeSeconds = (timeMs / 1000).toFixed(1);
 
     return (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+        <div
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="result-modal-title"
+        >
             <div className="bg-gray-800 rounded-lg p-8 w-full max-w-md border border-gray-700">
-                <h2 className="text-2xl font-semibold mb-6 text-center text-white">Test Complete</h2>
+                <h2 id="result-modal-title" className="text-2xl font-semibold mb-6 text-center text-white">Test Complete</h2>
 
                 <div className="space-y-4 mb-6">
                     <div className="flex justify-between items-center">

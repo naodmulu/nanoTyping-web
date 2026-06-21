@@ -152,11 +152,15 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
     };
   }, [fullText, wordBoundaries]);
 
-  // Scroll to current character
+  // Scroll to current character (instant jump when user prefers reduced motion)
   useEffect(() => {
     if (currentCharRef.current && containerRef.current) {
+      const prefersReducedMotion = window.matchMedia(
+        '(prefers-reduced-motion: reduce)'
+      ).matches;
+
       currentCharRef.current.scrollIntoView({
-        behavior: 'smooth',
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
         block: 'center',
         inline: 'center',
       });
@@ -352,8 +356,11 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
 
         <div
           ref={containerRef}
-          className="text-2xl leading-relaxed font-mono p-8 bg-gray-800/50 rounded-lg border border-gray-700/50 min-h-[200px] max-h-[300px] overflow-y-auto focus:outline-none select-none relative no-scrollbar"
+          className="typing-focus-target text-2xl leading-relaxed font-mono p-8 bg-gray-800/50 rounded-lg border border-gray-700/50 min-h-[200px] max-h-[300px] overflow-y-auto select-none relative no-scrollbar"
           tabIndex={0}
+          role="textbox"
+          aria-label="Typing test. Focus here and type the highlighted characters."
+          aria-multiline="true"
           style={{ wordBreak: 'break-word' }}
         >
           <div

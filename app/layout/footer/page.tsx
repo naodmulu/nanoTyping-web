@@ -10,17 +10,19 @@ const Footer = () => {
             <span>nanoTyping © 2024</span>
             <span className="hidden md:inline">•</span>
             <a
-              href="#"
+              href="https://github.com/naodmulu/nanoTyping-web"
               className="hover:text-yellow-400 transition-colors"
-              onClick={(e) => e.preventDefault()}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               GitHub
             </a>
             <span className="hidden md:inline">•</span>
             <a
-              href="#"
+              href="https://github.com/naodmulu/nanoTyping-web/issues"
               className="hover:text-yellow-400 transition-colors"
-              onClick={(e) => e.preventDefault()}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               Issues
             </a>
