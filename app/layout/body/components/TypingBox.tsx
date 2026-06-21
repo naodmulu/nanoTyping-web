@@ -11,12 +11,10 @@ import { RenderText } from '@/app/ui/RenderText';
 import {
   buildWordBoundaries,
   countCompletedWords,
-  findWordIndexAtPosition,
   getVisibleLineWindow,
   getVisibleWordWindow,
   LineLayout,
   LineBoundary,
-  WordBoundary,
 } from '@/app/utils/textWindow';
 
 const WINDOW_WORD_COUNT = 20;
@@ -32,7 +30,7 @@ const TypingBox = ({ config = DEFAULT_CONFIG }: { config?: GameConfig }) => {
   const [samples, setSamples] = useState<
     Array<{ timestamp: number; correctChars: number; rawChars: number }>
   >([]);
-  const [lastActivityTime, setLastActivityTime] = useState<number>(performance.now());
+  const [lastActivityTime, setLastActivityTime] = useState<number>(0);
   const [lineLayout, setLineLayout] = useState<LineLayout>({
     lineBoundaries: [],
     visibleLineCount: DEFAULT_VISIBLE_LINE_COUNT,

@@ -8,7 +8,7 @@ interface RenderTextArgs {
     visibleEnd: number;
     charStates: CharState[]
     currentIndex: number;
-    currentCharRef: RefObject<HTMLSpanElement>;
+    currentCharRef: RefObject<HTMLSpanElement | null>;
 }
 
 

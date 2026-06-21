@@ -58,7 +58,7 @@ export function getVisibleWordWindow(
 
     const halfWindow = Math.floor(wordWindowSize / 2);
     let startWordIndex = Math.max(0, anchorWordIndex - halfWindow);
-    let endWordIndex = Math.min(boundaries.length, startWordIndex + wordWindowSize);
+    const endWordIndex = Math.min(boundaries.length, startWordIndex + wordWindowSize);
 
     if (endWordIndex - startWordIndex < wordWindowSize) {
         startWordIndex = Math.max(0, endWordIndex - wordWindowSize);
@@ -128,7 +128,7 @@ export function getVisibleLineWindow(
     const lineWindowSize = Math.max(1, visibleLineCount);
     const halfWindow = Math.floor(lineWindowSize / 2);
     let startLineIndex = Math.max(0, anchorLineIndex - halfWindow);
-    let endLineIndex = Math.min(lineBoundaries.length, startLineIndex + lineWindowSize);
+    const endLineIndex = Math.min(lineBoundaries.length, startLineIndex + lineWindowSize);
 
     if (endLineIndex - startLineIndex < lineWindowSize) {
         startLineIndex = Math.max(0, endLineIndex - lineWindowSize);
