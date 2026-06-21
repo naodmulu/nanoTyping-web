@@ -5,16 +5,7 @@ export type CharState = {
     position: number; // absolute position in text
 };
 
-// Keep WordCharMap for backward compatibility during migration
-export type WordCharMap = Record<number, CharState>;
-
-export type TypingSample = {
-    timestamp: number;
-    correctChars: number;
-    rawChars: number;
-};
-
-export type GameMode = 'words' | 'time' | 'quote' | 'custom';
+export type GameMode = 'words' | 'time' | 'quote';
 
 export type GameConfig = {
     mode: GameMode;
