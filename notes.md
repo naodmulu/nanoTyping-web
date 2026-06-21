@@ -16,10 +16,12 @@
   - [x] render target text with per-char state (pending/correct/wrong)
   - [x] show caret and progress highlight
   - [x] handle line wrapping and scrolling
-- [x] Implement input handling
-  - [x] capture keystrokes reliably (keydown/keypress), support IME
-  - [x] apply edits, handle backspace, selection, paste
-  - [x] debounce/queue input to avoid UI jank
+- [~] Implement input handling
+  - [x] capture keystrokes (keydown)
+  - [ ] IME / composition support — not wired up (keydown-only model)
+  - [x] handle backspace
+  - [ ] selection / paste handling — not supported (keydown-only model)
+  - [ ] debounce/queue input to avoid UI jank — not implemented
 - [x] Implement WPM feature
   - [x] compute WPM (correct chars → words) and update periodically
   - [x] support session start/pause/reset
