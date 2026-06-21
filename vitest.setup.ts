@@ -4,6 +4,19 @@ import { vi } from 'vitest';
 // jsdom doesn't implement these; the typing UI relies on them.
 Element.prototype.scrollIntoView = vi.fn();
 
+if (typeof window.matchMedia !== 'function') {
+  window.matchMedia = (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
+}
+
 if (typeof globalThis.ResizeObserver === 'undefined') {
   globalThis.ResizeObserver = class {
     observe() {}

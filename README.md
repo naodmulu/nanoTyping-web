@@ -1,61 +1,130 @@
-<!-- README -->
 # nanoTyping
 
 [![CI](https://github.com/naodmulu/nanoTyping-web/actions/workflows/ci.yml/badge.svg)](https://github.com/naodmulu/nanoTyping-web/actions/workflows/ci.yml)
 
-A modern, minimalist typing speed test inspired by Monkeytype. Test and improve your typing speed with character-by-character feedback and detailed statistics.
+A minimalist typing-speed test with character-by-character feedback, live WPM/accuracy,
+and sliding-window rendering that keeps long passages smooth.
 
-## Getting Started
+**Live demo:** [nano-typing-web.vercel.app](https://nano-typing-web.vercel.app/)
 
-First, run the development server:
+![nanoTyping typing test — live WPM, accuracy, and character feedback](docs/demo.svg)
+
+---
+
+## Why this project
+
+Most typing-test UIs are straightforward forms. nanoTyping's interesting part is the
+**rendering pipeline**: only ~6 visible lines mount at a time instead of thousands of
+character spans, with runtime DOM measurement and an O(1) keystroke stats path.
+
+The full engineering story — diagrams, file references, and benchmark numbers — is in
+**[DESIGN.md](./DESIGN.md)**. That's the document to read before an interview.
+
+---
+
+## Features
+
+- **Word-count mode** — 10 / 25 / 50 / 100 words, auto-finish on completion
+- **Timed mode** — 15 / 30 / 60 / 120 seconds with live countdown
+- **Live stats** — corrected WPM, raw WPM, accuracy (color-coded)
+- **Character feedback** — per-char correct / wrong coloring + caret highlight
+- **Pause / resume** — Esc to toggle; auto-pause after 15 s idle
+- **Result modal** — WPM, accuracy, errors, time on finish
+- **CI-gated quality** — lint, typecheck, and tests on every PR
+
+### Roadmap (not yet shipped)
+
+- Punctuation / numbers / quote modes (UI stubs exist)
+- `GET /api/words` backend with caching
+- Session history (localStorage → Supabase)
+- IME composition + mobile on-screen keyboard support
+
+See [DESIGN.md — Known limitations](./DESIGN.md#known-limitations--future-work) for details.
+
+---
+
+## Architecture (30-second version)
+
+```
+keystroke → running counters (O(1)) → live stats (rAF timer)
+                ↓
+         charStates (render only)
+                ↓
+    word boundaries → DOM line measure → visible window → ~6 lines of spans
+```
+
+Deep dive: **[DESIGN.md](./DESIGN.md)**
+
+Key files:
+
+| Concern | Location |
+|---------|----------|
+| Virtualization + measurement | `app/layout/body/components/TypingBox.tsx` |
+| Window / binary search | `app/utils/textWindow.ts` |
+| O(1) counters | `app/utils/typingCounters.ts` |
+| rAF session timer | `app/hooks/useSessionTimer.ts` |
+| Visible text slice | `app/ui/RenderText.tsx` |
+
+---
+
+## Tech stack
+
+- **Next.js 16** (App Router) · **React 19** · **TypeScript**
+- **Tailwind CSS 3**
+- **Vitest** + **React Testing Library**
+- **GitHub Actions** CI
+- Deployed on **Vercel**
+
+---
+
+## Local development
 
 ```bash
+git clone https://github.com/naodmulu/nanoTyping-web.git
+cd nanoTyping-web
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). Click the typing area (or Tab to
+it) and start typing.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+No environment variables required for the current frontend-only build.
 
-## Testing & quality checks
+---
+
+## Testing
 
 ```bash
-npm test         # run the Vitest unit + integration suite
-npm run test:watch  # watch mode
-npm run coverage    # run with coverage
-npm run typecheck   # tsc --noEmit
-npm run lint        # eslint
+npm test          # Vitest unit + integration suite
+npm run test:watch
+npm run coverage
+npm run bench     # O(1) vs O(n) keystroke benchmark (see DESIGN.md)
+npm run typecheck
+npm run lint
+npm run build     # production build
 ```
 
-## Continuous Integration
+### CI
 
-Every pull request (and every push to `main`) runs the
-[`CI` workflow](.github/workflows/ci.yml), which executes `npm ci`, then
-`lint`, `typecheck`, and `test`.
+Every push to `main` and every PR runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
+`npm ci` → `lint` → `typecheck` → `test`.
 
-**Recommended branch protection:** in **Settings → Branches**, add a rule for
-`main` that requires the **"Lint, typecheck & test"** status check to pass
-before merging. This blocks merges when CI is red.
+### Accessibility
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Quick wins shipped for v1:
 
-## Learn More
+- Visible `:focus-visible` ring on the typing area and option controls
+- Skip-to-main-content link in the header
+- `prefers-reduced-motion`: caret scroll uses instant jump instead of smooth scroll
 
-To learn more about Next.js, take a look at the following resources:
+**Known gaps** (documented, not half-built): IME composition, mobile hidden-input focus.
+Lighthouse accessibility score on production build: **96/100** (local `npm run build &&
+npm run start`, then `npx lighthouse http://localhost:3000 --only-categories=accessibility`).
+See [DESIGN.md](./DESIGN.md#known-limitations--future-work).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## License
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT — see repository for details.
