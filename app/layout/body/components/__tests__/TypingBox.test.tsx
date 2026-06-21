@@ -63,4 +63,19 @@ describe('TypingBox integration', () => {
     // 6 of 7 correct => round(85.7) => 86%.
     expect(within(modal).getByText('86%')).toBeInTheDocument();
   });
+
+  it('keeps running counters correct across a mistake and backspace', async () => {
+    const user = userEvent.setup();
+    render(<TypingBox config={WORDS_CONFIG} />);
+
+    // Type a wrong char, correct it via backspace, then finish cleanly:
+    //   t h x  -> backspace removes the wrong 'x' -> e   space c a t
+    // The backspace must roll back the wrong keystroke so the final tally is a
+    // perfect 7/7, proving the O(1) counters decrement correctly.
+    await user.keyboard('thx{Backspace}e cat');
+
+    const modal = await findResultModal();
+    expect(within(modal).getByText('100%')).toBeInTheDocument();
+    expect(within(modal).getByText('7/7')).toBeInTheDocument();
+  });
 });
