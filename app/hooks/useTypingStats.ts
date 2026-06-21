@@ -1,26 +1,19 @@
 // useTypingStats.ts
 import { useMemo } from 'react';
+import { calculateWPM, calculateRollingWPM, TypingSample } from '../utils/stats';
 import {
-    calculateWPM,
-    calculateRollingWPM,
-    TypingSample,
-    countCorrectCharsFromArray,
-    countRawCharsFromArray,
-    countErrors,
-    calculateAccuracy,
-} from '../utils/stats';
-import { CharState } from '../utils/types';
+    TypingCounts,
+    countsToAccuracy,
+    countsToErrors,
+} from '../utils/typingCounters';
 
 export function useTypingStats(
-    charStates: CharState[],
+    counts: TypingCounts,
     elapsedMs: number,
     samples: TypingSample[]
 ) {
     return useMemo(() => {
-        const correctChars = countCorrectCharsFromArray(charStates);
-        const rawChars = countRawCharsFromArray(charStates);
-        const errors = countErrors(charStates);
-        const accuracy = calculateAccuracy(charStates);
+        const { correctChars, rawChars } = counts;
 
         return {
             correctedWPM: calculateWPM(correctChars, elapsedMs),
@@ -29,8 +22,8 @@ export function useTypingStats(
             finalizedWPM: calculateWPM(correctChars, elapsedMs),
             correctChars,
             rawChars,
-            errors,
-            accuracy,
+            errors: countsToErrors(counts),
+            accuracy: countsToAccuracy(counts),
         };
-    }, [charStates, elapsedMs, samples]);
+    }, [counts, elapsedMs, samples]);
 }
